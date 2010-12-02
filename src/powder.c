@@ -890,7 +890,7 @@ void update_particles_i(pixel *vid, int start, int inc)
             vy[y/CELL][x/CELL] *= ptypes[t].airloss;
             vx[y/CELL][x/CELL] += ptypes[t].airdrag*parts[i].vx;
             vy[y/CELL][x/CELL] += ptypes[t].airdrag*parts[i].vy;
-            if(t==PT_GAS||t==PT_NBLE)
+            if(t==PT_NBLE)
             {
                 if(pv[y/CELL][x/CELL]<3.5f)
                     pv[y/CELL][x/CELL] += ptypes[t].hotair*(3.5f-pv[y/CELL][x/CELL]);
@@ -1034,7 +1034,7 @@ void update_particles_i(pixel *vid, int start, int inc)
 							(pmap[y+ny][x+nx]&0xFF)!=0xFF)
 							{
 								r = pmap[y+ny][x+nx];
-								parts[r>>8].temp -= 0.1;
+								parts[r>>8].temp--;
 								parts[i].tmp++;
 							}
 						}
@@ -1046,7 +1046,7 @@ void update_particles_i(pixel *vid, int start, int inc)
                 {
                 t = parts[i].type = PT_OIL;
 				#ifndef HEAT_ENABLE
-					parts[i].temp += (parts[i].tmp * 0.1);
+					parts[i].temp += parts[i].tmp;
 					parts[i].tmp = 0;
 				#endif
 				}
