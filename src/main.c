@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include <bzlib.h>
 #include <time.h>
 

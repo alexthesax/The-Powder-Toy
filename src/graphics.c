@@ -1,5 +1,5 @@
 #include <math.h>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include <bzlib.h>
 
 #ifdef OpenGL
