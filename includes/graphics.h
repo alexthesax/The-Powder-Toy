@@ -1,6 +1,6 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "defines.h"
 #include "hmap.h"
 
