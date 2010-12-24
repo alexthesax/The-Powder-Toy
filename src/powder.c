@@ -133,6 +133,10 @@ int try_move(int i, int x, int y, int nx, int ny)
         return 1;
 
     e = eval_move(parts[i].type, nx, ny, &r);
+	
+	if((pmap[ny][nx]&0xFF)==PT_BOMB && parts[i].type==PT_BOMB && parts[i].tmp == 1)
+		e = 2;
+	
 	if((pmap[ny][nx]&0xFF)==PT_INVIS && (pv[ny/CELL][nx/CELL]>4.0f ||pv[ny/CELL][nx/CELL]<-4.0f))
 	    return 1;
     /* half-silvered mirror */
@@ -1511,7 +1515,7 @@ void update_particles_i(pixel *vid, int start, int inc)
 		{
                     t = parts[i].type = PT_FIRE;
 		    parts[i].life = rand()%50+120;
-            }
+		}
             if(t==PT_OIL && pv[y/CELL][x/CELL]<-10.0f)
                 {
                 t = parts[i].type = PT_GAS;
@@ -2817,13 +2821,73 @@ void update_particles_i(pixel *vid, int start, int inc)
 					}
 				}				
 			}
+		else if(t==PT_BOMB)
+	    {
+			if(parts[i].tmp==1){
+				for(nx=-2; nx<3; nx++)
+					for(ny=-2; ny<3; ny++)
+						if(x+nx>=0 && y+ny>0 && x+nx<XRES && y+ny<YRES && (nx || ny))
+						{
+							r = pmap[y+ny][x+nx];
+							if((r>>8)>=NPART || !r)
+								continue;
+							if(parts[r>>8].type!=PT_NONE && parts[r>>8].type!=PT_BOMB){
+								parts[i].type = PT_NONE;
+								goto killed;
+							}
+						}
+			} else if(parts[i].tmp==0){
+			for(nx=-2; nx<3; nx++)
+				for(ny=-2; ny<3; ny++)
+					if(x+nx>=0 && y+ny>0 && x+nx<XRES && y+ny<YRES)
+					{
+						r = pmap[y+ny][x+nx];
+						if((r>>8)>=NPART || !r)
+							continue;
+						if(parts[r>>8].type!=PT_NONE && parts[r>>8].type!=PT_BOMB){
+							int rad = 8;
+							int nxi;
+							int nxj;
+							pmap[y][x] = 0;
+							for(nxj=-(rad+1); nxj<=(rad+1); nxj++)
+								for(nxi=-(rad+1); nxi<=(rad+1); nxi++)
+									if((pow(nxi,2))/(pow((rad+1),2))+(pow(nxj,2))/(pow((rad+1),2))<=1){
+										int nb = create_part(-1, x+nxi, y+nxj, PT_BOMB);
+										if(nb!=-1){
+											parts[nb].tmp = 1;
+											parts[nb].life = 50;
+											parts[nb].temp = MAX_TEMP;
+											parts[nb].vx = rand()%20-10;
+											parts[nb].vy = rand()%20-10;
+										}
+									}
+							for(nxj=-rad; nxj<=rad; nxj++)
+								for(nxi=-rad; nxi<=rad; nxi++)
+									if((pow(nxi,2))/(pow(rad,2))+(pow(nxj,2))/(pow(rad,2))<=1){
+										delete_part(x+nxi, y+nxj);
+										pv[(y+nxj)/CELL][(x+nxi)/CELL] += 0.1f;
+										int nb = create_part(-1, x+nxi, y+nxj, PT_BOMB);
+										if(nb!=-1){
+											parts[nb].tmp = 2;
+											parts[nb].life = 2;
+											parts[nb].temp = MAX_TEMP;
+										}
+									}
+							//create_parts(x, y, 9, 9, PT_BOMB);
+							//create_parts(x, y, 8, 8, PT_NONE);
+							parts[i].type = PT_NONE;
+							goto killed;
+						}
+					}
+			}
+	    }
 	    else if(t==PT_FWRK)
 	    {
 			if((parts[i].temp>400&&(9+parts[i].temp/40)>rand()%100000&&parts[i].life==0&&!pmap[y-1][x])||parts[i].ctype==PT_DUST)
 			{
 				create_part(-1, x , y-1 , PT_FWRK);
 				r = pmap[y-1][x];
-				if(parts[r>>8].type==PT_FWRK)
+				if((r&0xFF)==PT_FWRK)
 				{
 					parts[r>>8].vy = rand()%8-22;
 					parts[r>>8].vx = rand()%20-rand()%20;
@@ -3083,7 +3147,7 @@ void update_particles_i(pixel *vid, int start, int inc)
                             r = pmap[y+ny][x+nx];
                             if((r>>8)>=NPART || !r)
                                 continue;
-			    else if(parts[r>>8].type==PT_SPRK&&(parts[r>>8].ctype==PT_PSCN)&&(parts[r>>8].life>=3)&&parts[i].life%4==0)
+			    else if(parts[r>>8].type==PT_SPRK&&(parts[r>>8].ctype==PT_PSCN)&&(parts[r>>8].life>=3)&&parts[i].life%4==0&&parts_avg(i,r>>8,PT_INSL)!=PT_INSL)
 			    {
 				    flood_parts(x,y,PT_SPRK,PT_INST,-1);//add life
 				    parts[r>>8].type==parts[r>>8].ctype;
@@ -5804,6 +5868,11 @@ int create_parts(int x, int y, int rx, int ry, int c)
     
     if(((sdl_mod & (KMOD_LALT) && sdl_mod & (KMOD_SHIFT))|| sdl_mod & (KMOD_CAPS) )&& !REPLACE_MODE)
 	{
+	if(rx==0&&ry==0)
+	{
+		delete_part(x, y);
+	}
+	else
         for(j=-ry; j<=ry; j++)
             for(i=-rx; i<=rx; i++)
                 if((CURRENT_BRUSH==CIRCLE_BRUSH && (pow(i,2))/(pow(rx,2))+(pow(j,2))/(pow(ry,2))<=1)||(CURRENT_BRUSH==SQUARE_BRUSH&&i*j<=ry*rx))
@@ -5813,6 +5882,11 @@ int create_parts(int x, int y, int rx, int ry, int c)
 
     if(c == SPC_AIR || c == SPC_HEAT || c == SPC_COOL || c == SPC_VACUUM)
     {
+	if(rx==0&&ry==0)
+	{
+		create_part(-2, x, y, c);
+	}
+	else
         for(j=-ry; j<=ry; j++)
             for(i=-rx; i<=rx; i++)
                 if((CURRENT_BRUSH==CIRCLE_BRUSH && (pow(i,2))/(pow(rx,2))+(pow(j,2))/(pow(ry,2))<=1)||(CURRENT_BRUSH==SQUARE_BRUSH&&i*j<=ry*rx))
@@ -5827,6 +5901,11 @@ int create_parts(int x, int y, int rx, int ry, int c)
     {
 	stemp = SLALT;
 	SLALT = 0;
+	if(rx==0&&ry==0)
+	{
+		delete_part(x, y);
+	}
+	else
         for(j=-ry; j<=ry; j++)
             for(i=-rx; i<=rx; i++)
                 if((CURRENT_BRUSH==CIRCLE_BRUSH && (pow(i,2))/(pow(rx,2))+(pow(j,2))/(pow(ry,2))<=1)||(CURRENT_BRUSH==SQUARE_BRUSH&&i*j<=ry*rx))
@@ -5836,6 +5915,11 @@ int create_parts(int x, int y, int rx, int ry, int c)
     }
     if(REPLACE_MODE)
     {
+	if(rx==0&&ry==0)
+	{
+		create_part(-2, x, y, c);
+	}
+	else
         for(j=-ry; j<=ry; j++)
             for(i=-rx; i<=rx; i++)
                 if((CURRENT_BRUSH==CIRCLE_BRUSH && (pow(i,2))/(pow(rx,2))+(pow(j,2))/(pow(ry,2))<=1)||(CURRENT_BRUSH==SQUARE_BRUSH&&i*j<=ry*rx))
@@ -5852,6 +5936,11 @@ int create_parts(int x, int y, int rx, int ry, int c)
 		return 1;
 		
     }
+    if(rx==0&&ry==0)//workaround for 1pixel brush/floodfill crashing. todo: find a better fix later.
+    {
+	create_part(-2, x, y, c);
+    }
+    else
     for(j=-ry; j<=ry; j++)
         for(i=-rx; i<=rx; i++)
             if((CURRENT_BRUSH==CIRCLE_BRUSH && (pow(i,2))/(pow(rx,2))+(pow(j,2))/(pow(ry,2))<=1)||(CURRENT_BRUSH==SQUARE_BRUSH&&i*j<=ry*rx))
