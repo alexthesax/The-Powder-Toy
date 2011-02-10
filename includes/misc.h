@@ -43,8 +43,8 @@ char *mystrdup(char *s);
 
 struct strlist
 {
-    char *str;
-    struct strlist *next;
+	char *str;
+	struct strlist *next;
 };
 
 void strlist_add(struct strlist **list, char *str);
@@ -58,6 +58,8 @@ void save_presets(int do_update);
 void load_presets(void);
 
 void save_string(FILE *f, char *str);
+
+int sregexp(const char *str, char *pattern);
 
 int load_string(FILE *f, char *str, int max);
 
