@@ -1557,6 +1557,29 @@ void update_particles_i(pixel *vid, int start, int inc)
 							if (1>rand()%6) t = PT_SALT;
 							else t = PT_WTRV;
 						}
+						else if (t==PT_OIL) {
+							t = parts[i].type = PT_GAS;
+							#ifndef HEAT_ENABLE		
+								for(nx=-1; nx<2; nx++)
+									for(ny=-1; ny<2; ny++)
+									{
+										if(x+nx>=0 && y+ny>0 && x+nx<XRES && y+ny<YRES &&
+	
+										(pmap[y+ny][x+nx]) &&
+						
+										(nx != 0 && ny != 0) &&
+
+										(pmap[y+ny][x+nx]&0xFF)!=PT_INSL&&
+
+										(pmap[y+ny][x+nx]&0xFF)!=0xFF)
+										{
+											r = pmap[y+ny][x+nx];
+											parts[r>>8].temp--;
+											parts[i].tmp++;
+										}
+									}
+							#endif
+						}
 						else s = 0;
 					} else if (ctempl<ptransitions[t].tlv&&ptransitions[t].tlt>-1) {
 						// particle type change due to low temperature
@@ -1692,11 +1715,41 @@ void update_particles_i(pixel *vid, int start, int inc)
 						t = PT_BRMT;
 					else s = 0;
 				}
+				else if (t==PT_GAS) {
+					t = parts[i].type = PT_OIL;
+					#ifndef HEAT_ENABLE
+						parts[i].temp += parts[i].tmp;
+						parts[i].tmp = 0;
+					#endif
+				}
 				else s = 0;
 			} else if (pv[y/CELL][x/CELL]<ptransitions[t].plv&&ptransitions[t].plt>-1) {
 				// particle type change due to low pressure
 				if (ptransitions[t].plt!=PT_NUM)
 					t = ptransitions[t].plt;
+				else if (t==PT_OIL){
+			       t = parts[i].type = PT_GAS;
+					#ifndef HEAT_ENABLE		
+						for(nx=-1; nx<2; nx++)
+							for(ny=-1; ny<2; ny++)
+							{
+								if(x+nx>=0 && y+ny>0 && x+nx<XRES && y+ny<YRES &&
+	
+								(pmap[y+ny][x+nx]) &&
+						
+								(nx != 0 && ny != 0) &&
+
+								(pmap[y+ny][x+nx]&0xFF)!=PT_INSL&&
+
+								(pmap[y+ny][x+nx]&0xFF)!=0xFF)
+								{
+									r = pmap[y+ny][x+nx];
+									parts[r>>8].temp--;
+									parts[i].tmp++;
+								}
+							}
+					#endif
+				}
 				else s = 0;
 			}
 			else s = 0;
