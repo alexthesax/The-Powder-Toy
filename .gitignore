@@ -5,3 +5,4 @@ gmon.out
 *.*.orig
 build/powder*
 build/stamps/*
+/stamps/
