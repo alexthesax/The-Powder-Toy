@@ -6,3 +6,13 @@ gmon.out
 build/powder*
 build/stamps/*
 /stamps/
+/Makefile
+/README
+/The Powder Toy.opensdf
+/The Powder Toy.sdf
+/The Powder Toy.sln
+/The Powder Toy.suo
+/The Powder Toy.vcxproj
+/The Powder Toy.vcxproj.filters
+/The Powder Toy.vcxproj.user
+/build
